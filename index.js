@@ -636,18 +636,30 @@ async function runServerInfo(ctx) {
   const guild = ctx.guild;
   const owner = await guild.fetchOwner().catch(() => null);
 
+  const textChannels = guild.channels.cache.filter(c => c.type === 0).size;
+  const voiceChannels = guild.channels.cache.filter(c => c.type === 2).size;
+  const connectedNow = guild.channels.cache
+    .filter(c => c.type === 2)
+    .reduce((sum, c) => sum + c.members.size, 0);
+
+  const verificationLabels = {
+    0: 'بدون', 1: 'منخفض', 2: 'متوسط', 3: 'عالي', 4: 'أعلى مستوى',
+  };
+
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setTitle(guild.name)
-    .setThumbnail(guild.iconURL() || null)
+    .setAuthor({ name: `👑 ${guild.name}` })
+    .setThumbnail(guild.iconURL({ size: 256 }) || null)
     .addFields(
-      { name: 'الآيدي', value: guild.id, inline: true },
-      { name: 'المالك', value: owner ? owner.user.tag : 'غير معروف', inline: true },
-      { name: 'عدد الأعضاء', value: `${guild.memberCount}`, inline: true },
-      { name: 'عدد الرتب', value: `${guild.roles.cache.size}`, inline: true },
-      { name: 'عدد القنوات', value: `${guild.channels.cache.size}`, inline: true },
-      { name: 'مستوى البوست', value: `${guild.premiumTier || 0} (${guild.premiumSubscriptionCount || 0} بوست)`, inline: true },
-      { name: 'تاريخ الإنشاء', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:F>` },
+      { name: '📅 تاريخ الإنشاء', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+      { name: '👑 مملوك بواسطة', value: owner ? `${owner}` : 'غير معروف', inline: true },
+      { name: '🌐 آيدي السيرفر', value: guild.id, inline: true },
+      { name: '👤 الأعضاء', value: `${guild.memberCount}`, inline: true },
+      { name: '💬 الرومات', value: `${guild.channels.cache.size}`, inline: true },
+      { name: '🔒 عدد الرتب', value: `${guild.roles.cache.size}`, inline: true },
+      { name: '✅ مستوى التحقق', value: verificationLabels[guild.verificationLevel] ?? 'غير معروف', inline: true },
+      { name: '📝 كتابي / 🎙️ صوتي', value: `${textChannels} كتابي / ${voiceChannels} صوتي | متصلين الآن: ${connectedNow}`, inline: true },
+      { name: '🚀 Boosts', value: `${guild.premiumSubscriptionCount || 0} (مستوى ${guild.premiumTier || 0})`, inline: true },
     );
 
   return ctx.reply({ embeds: [embed] });

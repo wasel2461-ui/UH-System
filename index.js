@@ -1048,6 +1048,7 @@ const REQUIRED_PERMS = {
   طرد: PermissionsBitField.Flags.Administrator,
   حظر: PermissionsBitField.Flags.Administrator, // + تحقق إضافي: بس المالك (شوف isOwnerOnly تحت)
   تحذير: PermissionsBitField.Flags.Administrator,
+  تح: PermissionsBitField.Flags.Administrator,
   قائمة_الحظر: PermissionsBitField.Flags.Administrator,
   الغاء_حظر: PermissionsBitField.Flags.Administrator,
   لقب: PermissionsBitField.Flags.Administrator,
@@ -1074,7 +1075,7 @@ const REQUIRED_PERMS = {
 const OWNER_ONLY_COMMANDS = ['حظر'];
 
 // أوامر معلومات — أي عضو يقدر يستخدمها بدون صلاحيات خاصة
-const OPEN_TEXT_COMMANDS = ['افتار', 'معلومات_عضو', 'معلومات_السيرفر'];
+const OPEN_TEXT_COMMANDS = ['افتار', 'معلومات_عضو', 'معلومات_السيرفر', 's'];
 
 // ============ Slash Commands ============
 client.on('interactionCreate', async interaction => {
@@ -1300,6 +1301,7 @@ client.on('messageCreate', async message => {
       case 'حظر':
         return await runBan(ctx, mentionedUser, rest.join(' '));
       case 'تحذير':
+      case 'تح':
         return await runWarn(ctx, mentionedUser, rest.join(' '));
       case 'قائمة_الحظر':
         return await runBanList(ctx);
@@ -1310,6 +1312,7 @@ client.on('messageCreate', async message => {
       case 'معلومات_عضو':
         return await runUserInfo(ctx, mentionedUser || message.author);
       case 'معلومات_السيرفر':
+      case 's':
         return await runServerInfo(ctx);
       case 'لقب':
         return await runSetNick(ctx, mentionedUser, rest.join(' '));
@@ -1390,5 +1393,25 @@ client.on('messageCreate', async message => {
     return message.reply('❌ صار خطأ أثناء تنفيذ الأمر.');
   }
 });
+
+// ============ سيرفر HTTP بسيط جدًا ============
+// بعض منصات الاستضافة المجانية (مثل Render) تحتاج البرنامج يستمع على بورت HTTP
+// عشان تعتبره "شغال" وما تطفيه. هذا ما له علاقة بمنطق البوت، بس ضروري للاستضافة.
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+const keepAliveServer = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('البوت شغال ✅');
+});
+
+keepAliveServer.on('error', err => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`⚠️ البورت ${PORT} محجوز (يمكن فيه نسخة ثانية من البوت شغالة) — تجاهلت سيرفر الفحص، البوت نفسه بيشتغل عادي.`);
+  } else {
+    console.error('خطأ بسيرفر الفحص:', err);
+  }
+});
+
+keepAliveServer.listen(PORT, '0.0.0.0', () => console.log(`🌐 سيرفر الفحص شغال على بورت ${PORT}`));
 
 client.login(process.env.DISCORD_TOKEN);
